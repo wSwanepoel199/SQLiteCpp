@@ -20,10 +20,14 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 message (STATUS "CMake version: ${CMAKE_VERSION}")
 message (STATUS "Project version: ${PROJECT_VERSION}")
 
-option(SQLITECPP_BUILD_TESTS "Build and run tests." OFF)
+if(NOT DEFINED SQLITECPP_BUILD_TESTS)
+    option(SQLITECPP_BUILD_TESTS "Build and run tests." OFF)
+endif()
 
-# BUILD_SHARED_LIBS is a standard CMake variable, but we declare it here to make it prominent
-option(BUILD_SHARED_LIBS "Build shared libraries (DLLs)." OFF)
+if(NOT DEFINED BUILD_SHARED_LIBS)
+    # BUILD_SHARED_LIBS is a standard CMake variable, but we declare it here to make it prominent
+    option(BUILD_SHARED_LIBS "Build shared libraries (DLLs)." OFF)
+endif()
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
@@ -40,8 +44,10 @@ if (MSVC)
     set(CPPCHECK_ARG_TEMPLATE   "--template=vs")
     # disable Visual Studio warnings for fopen() used in the example
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    if(NOT DEFINED SQLITECPP_USE_STATIC_RUNTIME)
     # Flags for linking with multithread static C++ runtime, required by internal googletest
     option(SQLITECPP_USE_STATIC_RUNTIME "Use MSVC static runtime (default for internal googletest)." FALSE)
+    endif()
     if (SQLITECPP_USE_STATIC_RUNTIME)
         message(STATUS "Linking against multithread static C++ runtime")
         # inspired from Zlib licensed glfw https://github.com/glfw/glfw/blob/master/CMakeLists.txt
@@ -77,7 +83,9 @@ else (MSVC) # Unix/macOS/MinGW
     if (NOT MINGW)
         # Stack protection is not supported on MinGW-W64 on Windows.
         # Allow this flag to be turned off.
+        if(NOT DEFINED SQLITECPP_USE_STACK_PROTECTION)
         option(SQLITECPP_USE_STACK_PROTECTION "USE Stack Protection hardening." ON)
+        endif()
         if (SQLITECPP_USE_STACK_PROTECTION)
             message (STATUS "Using Stack Protection hardening")
             add_compile_options(-fstack-protector)
@@ -86,7 +94,9 @@ else (MSVC) # Unix/macOS/MinGW
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wpedantic -Wswitch-enum -Wshadow -Wno-long-long") # C++ only, don't bother with sqlite3
     if (CMAKE_COMPILER_IS_GNUCXX)
         # GCC flags
+        if(NOT DEFINED SQLITECPP_USE_GCOV)
         option(SQLITECPP_USE_GCOV "USE GCov instrumentation." OFF)
+        endif()
         if (SQLITECPP_USE_GCOV)
             message (STATUS "Using GCov instrumentation")
             add_compile_options (-coverage)
@@ -214,28 +224,35 @@ endif()
 add_library(SQLiteCpp ${SQLITECPP_SRC} ${SQLITECPP_INC} ${SQLITECPP_DOC} ${SQLITECPP_SCRIPT})
 
 # Options relative to SQLite and SQLiteC++ functions
-
+if(NOT DEFINED SQLITE_ENABLE_COLUMN_METADATA)
 option(SQLITE_ENABLE_COLUMN_METADATA "Enable Column::getColumnOriginName(). Require support from sqlite3 library." ON)
+endif()
 if (SQLITE_ENABLE_COLUMN_METADATA)
     # Enable the use of SQLite column metadata and Column::getColumnOriginName() method,
     # Require that the sqlite3 library is also compiled with this flag (default under Debian/Ubuntu, but not on Mac OS X).
     target_compile_definitions(SQLiteCpp PUBLIC SQLITE_ENABLE_COLUMN_METADATA)
 endif (SQLITE_ENABLE_COLUMN_METADATA)
 
+if(NOT DEFINED SQLITE_ENABLE_ASSERT_HANDLER)
 option(SQLITE_ENABLE_ASSERT_HANDLER "Enable the user definition of a assertion_failed() handler." OFF)
+endif()
 if (SQLITE_ENABLE_ASSERT_HANDLER)
     # Enable the user definition of a assertion_failed() handler (default to false, easier to handler for beginners).
     target_compile_definitions(SQLiteCpp PUBLIC SQLITECPP_ENABLE_ASSERT_HANDLER)
 endif (SQLITE_ENABLE_ASSERT_HANDLER)
 
+if(NOT DEFINED SQLITE_HAS_CODEC)
 option(SQLITE_HAS_CODEC "Enable database encryption API. Not available in the public release of SQLite." OFF)
+endif()
 if (SQLITE_HAS_CODEC)
     # Enable database encryption API. Requires implementations of sqlite3_key & sqlite3_key_v2.
     # Eg. SQLCipher (libsqlcipher-dev) is an SQLite extension that provides 256 bit AES encryption of database files. 
     target_compile_definitions(SQLiteCpp PUBLIC SQLITE_HAS_CODEC)
 endif (SQLITE_HAS_CODEC)
 
+if(NOT DEFINED SQLITE_USE_LEGACY_STRUCT)
 option(SQLITE_USE_LEGACY_STRUCT "Fallback to forward declaration of legacy struct sqlite3_value (pre SQLite 3.19)" OFF)
+endif()
 if (SQLITE_USE_LEGACY_STRUCT)
     # Force forward declaration of legacy struct sqlite3_value (pre SQLite 3.19)
     target_compile_definitions(SQLiteCpp PUBLIC SQLITE_USE_LEGACY_STRUCT)
@@ -249,7 +266,9 @@ if (BUILD_SHARED_LIBS)
     endif()
 endif()
 
+if(NOT DEFINED SQLITE_OMIT_LOAD_EXTENSION)
 option(SQLITE_OMIT_LOAD_EXTENSION "Enable omit load extension" OFF)
+endif()
 if (SQLITE_OMIT_LOAD_EXTENSION)
     # Enable the user definition of load_extension().
     target_compile_definitions(SQLiteCpp PUBLIC SQLITE_OMIT_LOAD_EXTENSION)
@@ -259,7 +278,9 @@ if (UNIX AND (CMAKE_COMPILER_IS_GNUCXX OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "Cla
     set_target_properties(SQLiteCpp PROPERTIES COMPILE_FLAGS "-fPIC")
 endif (UNIX AND (CMAKE_COMPILER_IS_GNUCXX OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang"))
 
+if(NOT DEFINED SQLITECPP_USE_ASAN)
 option(SQLITECPP_USE_ASAN "Use Address Sanitizer." OFF)
+endif()
 if (SQLITECPP_USE_ASAN)
     if ((CMAKE_CXX_COMPILER_VERSION GREATER_EQUAL 6) OR ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang"))
         message (STATUS "Using Address Sanitizer")
@@ -278,7 +299,9 @@ endif ()
 
 ## Build provided copy of SQLite3 C library ##
 
+if(NOT DEFINED SQLITECPP_INTERNAL_SQLITE)
 option(SQLITECPP_INTERNAL_SQLITE "Add the internal SQLite3 source to the project." ON)
+endif()
 if (SQLITECPP_INTERNAL_SQLITE)
     message(STATUS "Compile sqlite3 from source in subdirectory")
     option(SQLITE_ENABLE_RTREE "Enable RTree extension when building internal sqlite3 library." OFF)
