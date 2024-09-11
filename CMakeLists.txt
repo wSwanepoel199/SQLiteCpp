@@ -20,7 +20,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 message (STATUS "CMake version: ${CMAKE_VERSION}")
 message (STATUS "Project version: ${PROJECT_VERSION}")
 
-option(SQLITECPP_BUILD_TESTS "Build and run tests." ON)
+option(SQLITECPP_BUILD_TESTS "Build and run tests." OFF)
 
 # BUILD_SHARED_LIBS is a standard CMake variable, but we declare it here to make it prominent
 option(BUILD_SHARED_LIBS "Build shared libraries (DLLs)." ON)
